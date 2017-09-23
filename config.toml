@@ -6,6 +6,8 @@ theme = "mainroad"
 paginate = "10"
 sectionPagesMenu = "main"
 
+disqusShortname = "alhneiti"
+
 [[menu.main]]
     name = "Home"
     url = "/"
