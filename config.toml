@@ -4,6 +4,24 @@ title = "Rakan"
 theme = "mainroad"
 
 paginate = "10"
+sectionPagesMenu = "main"
+
+[[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = -100
+
+[[menu.main]]
+    name = "Code Articles"
+    weight = -90
+    identifier = "code"
+    url = "/code/"
+
+[[menu.main]]
+    name = "Emacs"
+    weight = -80
+    identifier = "emacs"
+    url = "/emacs/"
 
 [Author] # Used in authorbox
     name = "Rakan Alhneiti"
@@ -12,20 +30,17 @@ paginate = "10"
 
 [Params]
     opengraph = true # Enable OpenGraph if true
-    readmore = false # Show "Read more" button in list if true
+    readmore = true # Show "Read more" button in list if true
     leftsidebar = false # Move sidebar to the left side if true
-    authorbox = true # Show authorbox at bottom of pages if true
     post_navigation = true # Show post navigation at bottom of pages if true
-    postSections = ["coding", "emacs"] # alternative that shows more than one section's pages
-    #dateformat = "2006-01-02" # change the format of dates
+    postSections = ["code", "emacs"] # alternative that shows more than one section's pages
 
 [Params.widgets]
     search = true # Enable "Search" widget
     recent_articles = true # Enable "Recent articles" widget
     recent_articles_num = 5 # Set the number of articles in the "Recent articles" widget
-    categories = true # Enable "Categories" widget
     tags = true # Enable "Tags" widget
-    tags_counter = false # Enable counter for each tag in "Tags" widget (disabled by default)
+    tags_counter = true # Enable counter for each tag in "Tags" widget (disabled by default)
 
     # Enable "Social" widget, if any of "social_*" set a value
     social_twitter = "rakanalh"
