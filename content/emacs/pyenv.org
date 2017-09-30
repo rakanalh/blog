@@ -1,0 +1,150 @@
+---
+title: "Setup Emacs for Python development using Pyenv"
+date: 2017-09-24T01:09:34+02:00
+tags: ["Emacs"]
+---
+
+[[https://github.com/pyenv/pyenv][Pyenv]], as advertised, is a tool that lets you work with multiple versions of Python on the same machine.
+You could install different versions of Python such as 2.7.12 or 3.5.2 and define which one you'd like to use by executing:
+#+BEGIN_SRC sh
+> pyenv install 3.5.2
+> cd /path/i/want/to/use/3.5.2/in
+> pyenv local 3.5.2
+> python -V
+#+END_SRC
+That would compile and install 3.5.2 on your machine and have it available wherever you'd like to use it.
+The ~local~ command tells Pyenv that you'd like to set the version of Python in the current working directory to that version.
+How does Pyenv do it? if you look at your directory structure
+#+BEGIN_SRC sh
+> ls -la
+-rw-r--r--   1 rakan  staff     6B Sep 20  2016 .python-version
+#+END_SRC
+You'll notice that Pyenv places this ~.python-version~ file inside your current directory so that it can tell which
+python version this directory is using. If the file doesn't exist, then Pyenv will use the global Python version set.
+
+Quite convenient isn't it? this means that you can use pip and possibly other tools to setup your project with that specific Python version.
+What if you had multiple projects that use the same version? you'd think you have to use virtualenv and you'd be right.
+Enter [[https://github.com/pyenv/pyenv-virtualenv][Pyenv-virtualenv]], which will basically add an additional ~virtualenv~ command to your pyenv executable.
+#+BEGIN_SRC sh
+pyenv virtualenv 3.5.2 my-project-virtualenv-name
+#+END_SRC
+The above command will create a new virtualenv based on the specified Python version,
+but it wont set the current working directory to use that virtualenv, so you would have to be explicit by executing
+#+BEGIN_SRC sh
+pyenv local my-project-virtual-env
+#+END_SRC
+I am sure you noticed by now that Pyenv let's you deal with multiple Python versions and multiple virtualenvs as just different
+python installations that you could use each in a separate directory. So when you navigate to a directory which contains
+a ~.python-version~ file that contains a version number, you'll be using that specific Python installation.
+However, if ~.python-version~ of the current directory is a virtualenv, Pyenv will automatically activate it for you and
+any command you execute such as ~pip install X~ would affect that virtualenv.
+
+Now that we covered basic Pyenv usage. How do we integrate this with Emacs?
+Well, let's start with setting up Python first:
+There are two packages on MELPA, which i know of, that provide Python-IDE experience: [[https://github.com/jorgenschaefer/elpy][Elpy]] and [[https://github.com/proofit404/anaconda-mode][Anaconda-mode]].
+I use Elpy, so let's see how we can configure the package. I am going to show you ~use-package~ snippets and
+hopefully, you'll be using that already, otherwise, please consult the package documentation:
+#+BEGIN_SRC lisp
+(use-package elpy
+    :init
+    (add-to-list 'auto-mode-alist '("\\.py$" . python-mode))
+    :bind (:map elpy-mode-map
+	      ("<M-left>" . nil)
+	      ("<M-right>" . nil)
+	      ("<M-S-left>" . elpy-nav-indent-shift-left)
+	      ("<M-S-right>" . elpy-nav-indent-shift-right)
+	      ("M-." . elpy-goto-definition)
+	      ("M-," . pop-tag-mark))
+    :config
+    (setq elpy-rpc-backend "jedi"))
+
+(use-package python
+  :mode ("\\.py" . python-mode)
+  :config
+  (setq python-indent-offset 4)
+  (elpy-enable))
+
+#+END_SRC
+The above elisp snippet should be straight forward. In the second ~use-package~ statement, I am loading the Python package, which is included with your Emacs
+installation. The only notable part about it is enabling elpy by calling that designated function.
+The first part is the interesting one where we load the elpy package, rebind a couple of key strokes and define some new ones,
+in addition to setting the rpc backend to jedi. Which means that jedi has to be installed.
+If you followed the above, you should be in a directory where you have a ~.python-version~ file which contains a name of a virtualenv
+you created, so go ahead and install the dependencies mentioned in the [[https://github.com/jorgenschaefer/elpy#quick-installation][Quick Installation]] section of Elpy.
+#+BEGIN_SRC sh
+# Either of these
+pip install rope
+pip install jedi
+# flake8 for code checks
+pip install flake8
+# importmagic for automatic imports
+pip install importmagic
+# and autopep8 for automatic PEP8 formatting
+pip install autopep8
+# and yapf for code formatting
+pip install yapf
+#+END_SRC
+
+Great! Now if you try to use Emacs with Elpy, you'll notice that Elpy does not recognize that you've already
+installed the dependencies it requires into your current virtualenv because it doesn't see your virtualenv in the first place.
+This is where the package ~pyenv-mode~ comes into play, let's set it up:
+#+BEGIN_SRC lisp
+(use-package pyenv-mode
+  :init
+  (add-to-list 'exec-path "~/.pyenv/shims")
+  (setenv "WORKON_HOME" "~/.pyenv/versions/")
+  :config
+  (pyenv-mode)
+  :bind
+  ("C-x p e" . pyenv-activate-current-project))
+#+END_SRC
+
+~use-package~ will make sure this package is installed for you if you don't already have it. The configuration of the package
+includes setting the ~WORKON_HOME~ environment variable to ~~/.pyenv/versions~. ~exec-path~ will also be updated to point to your
+~~/.pyenv/shims~. What are those?
+Whenever you navigate to a directory with a ~.python-version~ file, Pyenv would read the file's content which tell Pyenv which version you are using.
+It will create symbolic links of the Python, Pip and potentially other executables you have installed in that specific version
+into those those two directories which makes it possible for us to just configure a single directory where those executables
+will be found.
+
+Now what we'll need is a way to tell Emacs to update the currently activated pyenv version every time we switch projects.
+You'll notice in the ~:bind~ section of the above snippet that i configured ~C-x p e~ to activate current project's pyenv
+configuration.
+
+#+BEGIN_SRC lisp
+(defun pyenv-activate-current-project ()
+  "Automatically activates pyenv version if .python-version file exists."
+  (interactive)
+  (f-traverse-upwards
+   (lambda (path)
+     (message path)
+     (let ((pyenv-version-path (f-expand ".python-version" path)))
+       (if (f-exists? pyenv-version-path)
+          (progn
+            (setq pyenv-current-version (s-trim (f-read-text pyenv-version-path 'utf-8)))
+            (pyenv-mode-set pyenv-current-version)
+            (pyvenv-workon pyenv-current-version)
+            (message (concat "Setting virtualenv to " pyenv-current-version))))))))
+#+END_SRC
+
+The above code base, would traverse the directories starting from the current buffer's directory all the way up to root
+looking for the ~.python-version~ file. If it finds this file, it reads the content and set's both ~pyenv-mode~ and ~pyvenv~ mode
+to use that version. At the end, it'll emit a message saying that the virtualenv was set to the version found when you
+press that keystroke ~C-x p e~.
+
+In addition to that, we also need to activate the global version when we load Emacs.
+#+BEGIN_SRC lisp
+(defun pyenv-init()
+  (setq global-pyenv (replace-regexp-in-string "\n" "" (shell-command-to-string "pyenv global")))
+  (message (concat "Setting pyenv version to " global-pyenv))
+  (pyenv-mode-set global-pyenv)
+  (defvar pyenv-current-version nil global-pyenv))
+
+(add-hook 'after-init-hook 'pyenv-init)
+#+END_SRC
+Which will initialize pyenv t o use the global version at initialization.
+
+Once you have this code in your Emacs configuration, You'll have a working setup for this amazing Pyenv package
+as well as Elpy.
+
+Enjoy Emacs!

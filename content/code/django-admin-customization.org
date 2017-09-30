@@ -1,0 +1,6 @@
+---
+title: "Django Admin Customization"
+date: 2017-09-24T01:08:26+02:00
+tags: ["code", "python"]
+draft: true
+---

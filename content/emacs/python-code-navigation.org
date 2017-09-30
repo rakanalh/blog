@@ -1,0 +1,11 @@
+---
+title: "Python Code Navigation in Emacs"
+date: 2017-09-23T23:21:10+02:00
+tags: ["Emacs"]
+draft: true
+---
+Hello world
+#+BEGIN_SRC lisp
+(defun ()
+  (message "Hello world"))
+#+END_SRC
