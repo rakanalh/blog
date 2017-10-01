@@ -1,0 +1,165 @@
+---
+title: "Code Navigation in Emacs"
+date: 2017-10-01T23:21:10+02:00
+tags: ["Emacs"]
+---
+
+When working with Python code bases, i sometimes have the need to jump between next / previous functions i am working on within
+the same file. As this is a common thing i would do, i tried searching for way to navigate to previous and next functions
+relative to my current position. There are a collection of tools that make this easy for you:
+
+- imenu
+With imenu, you are able to call =M-x imenu= or as it's bound to =C-x C-j= which will show the list of available
+imenu candidates and make you select one you'd like to jump to.
+However, this approach has 2 downsides. First is the fact that you'd have to call the function manually or using
+the keystroke mentioned above and then select a candidate which leads to alot of keystrokes for such a simple task.
+Second is that it doesn't select the candidate you're currently
+inside. So if you have functions A, B, C and D, and the current position of cursor is inside D then D won't be selected
+in the candidates list. I am not sure why this happens but that's my experience.
+
+- [[https://github.com/abo-abo/swiper][Swiper]]
+You could also use swiper, part of the ivy package available on MELPA. Swiper is an improved isearch, which basically
+requires you to enter a search criteria and then navigate through the list until you find what you're looking for.
+Again, the downside for me is that i'd have to remember the name of the function i am looking for and then navigate
+my way into the place i want to be.
+
+- [[https://github.com/abo-abo/avy][Avy]] / [[https://github.com/winterTTr/ace-jump-mode][Ace-jump-mode]]
+Both packages allow you to invoke them, then enter the first letter of what would match the place you want to
+navigate to, that is visible in the current buffer and markers will appear in places that match. Once you enter
+the marker letters that appear, the cursor will take you to the location you wanted. Again, alot of keystrokes.
+
+There must be a better way.
+
+I noticed that imenu is able to provide you with the list of candidates (classes / methods / functions) that you can navigate
+to as described in the above point about imenu. So i decided to write my own elisp functions to make the exact
+navigation behaviour i want available.
+
+The idea that i would like to implement here is as follows:
+
+1. Get the list of candidates from imenu
+2. Figure out which candidate my cursor is inside.
+3. In case of going to the previous candidate, then navigate to =current item index - 1=
+4. In case of going to the next candidate, then navigate to =current item index + 1=.
+5. Possibly, allow for circular navigation. so when reaching the top, navigate all the way to the bottom and vice versa.
+
+First, i figured i would need the list of candidates from imenu:
+
+#+BEGIN_SRC lisp
+(defun codenav-imenu-candidates ()
+  "Get the candidates list from imenu."
+  (let* ((items (imenu--make-index-alist))
+	 (items (delete (assoc "*Rescan*" items) items)))
+    items))
+#+END_SRC
+
+That was easy, make imenu build the list from the contents of the current buffer and remove the "Rescan" item.
+
+In case you have functions combined with classes and methods, the list returned will have nested lists contents of "containers"
+in your codebase such as classes. So we'd have to flatten the list out because we don't care about the nesting part at the
+moment.
+
+#+BEGIN_SRC lisp
+(defun codenav-flatten-candidates (candidates)
+  "Flatten CANDIDATES of imenu list."
+  (let (result)
+    (dolist (candidate candidates result)
+      (if (imenu--subalist-p candidate)
+          (setq result (append result (codenav-flatten-candidates (cdr candidate))))
+        (add-to-list 'result candidate)))
+    result))
+#+END_SRC
+
+The above code just goes through the list, if it encounters a nested list, it calls itself recursively and
+appends the result to the current =results= list. otherwise, append the candidate into the list and return the list
+once all items are done.
+
+You'll notice up to this point that the candidates list is not sorted the way we wanted. Although imenu has a config
+=imenu-sort-function= which if set to nil, then items will be returned as they appear in the file. However, mine was set
+to nil and this wasn't the case for me. So let's sort the items:
+
+#+BEGIN_SRC lisp
+(defun codenav-sort-candidates (candidates)
+  (sort candidates (lambda (a b) (< (cdr a) (cdr b)))))
+#+END_SRC
+
+Simply calling the sort function to compare items =A= and =B= which both look as follows:
+=(Name-of-function . Marker)=. So comparing their markers would sort the list as we're doing above from
+the min marker to the max one.
+
+So up to this point we have a sorted list of candidates. Now what we have to do is figure out which candidate our cursor is
+sitting inside:
+
+#+BEGIN_SRC lisp
+(defun codenav-current-symbol (names-and-pos)
+  "Figure out current definition by checking positions of NAMES-AND-POS against current position."
+  (let ((list-length (length names-and-pos))
+        (current-pos (point))
+        (current-index 0)
+        (next-index 0))
+    (dolist (symbol names-and-pos)
+      ;; If we reaches the end, just return the last element
+      ;; instead of returning index+1
+      (setq next-index (if (< next-index (1- list-length))
+                          (1+ current-index)
+                         current-index))
+      (let* ((current-symbol-pos (marker-position (cdr symbol)))
+	     (next-symbol-pos (marker-position (cdr (nth next-index names-and-pos)))))
+        (if (and (= current-index 0) (< current-pos current-symbol-pos))
+            (return 0))
+	(if (and (>= current-pos current-symbol-pos) (< current-pos next-symbol-pos))
+	    (return current-index)))
+      (setq current-index (1+ current-index)))
+    ;; If last item, decrement index
+    (if (eq current-index (length names-and-pos))
+	(1- current-index)
+      current-index)))
+#+END_SRC
+
+This goes through the sorted candidates list (we'll get to that later), and determines the =index= of the item our cursor is inside
+If the cursor is placed before the 1st item, that means we can now navigate to the last item. If the cursor is placed inside or after
+the last element, then we can jump all the way to the top. This returns the index as required accordingly.
+
+Now for the fun part. The above function returns the index of the candidate our cursor is inside. We now need to define
+the functions which will perform the jumps:
+
+#+BEGIN_SRC lisp
+(defun codenav-next-definition ()
+  "Navigate to next function/class definition."
+  (interactive)
+  (let* ((imenu-candidates (codenav-imenu-candidates))
+         (names-and-pos (codenav-sort-candidates (codenav-flatten-candidates imenu-candidates)))
+	 (current-symbol (codenav-current-symbol names-and-pos))
+         (next-symbol-index (if (>= (1+ current-symbol) (length names-and-pos)) 0
+                              (1+ current-symbol)))
+	 (next-symbol (nth next-symbol-index names-and-pos)))
+    (imenu next-symbol)))
+
+
+(defun codenav-prev-definition ()
+  "Navigate to previous function/class definition."
+  (interactive)
+  (let* ((imenu-candidates (codenav-imenu-candidates))
+         (names-and-pos (codenav-sort-candidates (codenav-flatten-candidates imenu-candidates)))
+	 (current-symbol (codenav-current-symbol names-and-pos))
+         (prev-symbol-index (if (< (1- current-symbol) 0) (1- (length names-and-pos))
+                              (1- current-symbol)))
+	 (prev-symbol (nth prev-symbol-index names-and-pos)))
+    (imenu prev-symbol)))
+#+END_SRC
+
+Both functions look similar. The only difference is that one of them +1's the current index to go to the next item while the other
+performs a -1 on the current index.
+
+Once we figure out the index of the item we want to navigate to, we can call the =imenu= function to jump to that element.
+
+Excellent! all we have to do right now is bind those two functions to some keys. I bind them as follows:
+
+#+BEGIN_SRC lisp
+(global-set-key (kbd "M-i") (lambda () (interactive) (codenav-prev-definition)))
+(global-set-key (kbd "M-k") (lambda () (interactive) (codenav-next-definition)))
+#+END_SRC
+
+And now you'll be able to enjoy navigating your way through class definitions / methods and functions in the current file easily
+with your preferred keystroke. The even better part of it is, this will work with any language imenu is able to work with.
+
+Enjoy Emacs!

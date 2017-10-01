@@ -15,11 +15,11 @@ googleAnalytics = "UA-24425385-1"
     url = "/"
     weight = -100
 
-[[menu.main]]
-    name = "Programming"
-    weight = -90
-    identifier = "programming"
-    url = "/programming/"
+#[[menu.main]]
+#    name = "Programming"
+#    weight = -90
+#    identifier = "programming"
+#    url = "/programming/"
 
 [[menu.main]]
     name = "Emacs"
