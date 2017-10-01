@@ -11,20 +11,27 @@ googleAnalytics = "UA-24425385-1"
 
 [[menu.main]]
     name = "Home"
+    identifier = "home"
     url = "/"
     weight = -100
 
 [[menu.main]]
-    name = "Code Articles"
+    name = "Programming"
     weight = -90
-    identifier = "code"
-    url = "/code/"
+    identifier = "programming"
+    url = "/programming/"
 
 [[menu.main]]
     name = "Emacs"
     weight = -80
     identifier = "emacs"
     url = "/emacs/"
+
+[[menu.main]]
+    name = "Projects"
+    weight = -70
+    identifier = "projects"
+    url = "/projects"
 
 [Author] # Used in authorbox
     name = "Rakan Alhneiti"
@@ -36,7 +43,7 @@ googleAnalytics = "UA-24425385-1"
     readmore = true # Show "Read more" button in list if true
     leftsidebar = false # Move sidebar to the left side if true
     post_navigation = true # Show post navigation at bottom of pages if true
-    postSections = ["code", "emacs"] # alternative that shows more than one section's pages
+    postSections = ["programming", "emacs"] # alternative that shows more than one section's pages
 
 [Params.widgets]
     search = true # Enable "Search" widget

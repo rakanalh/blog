@@ -1,0 +1,13 @@
+---
+title: "Projects"
+date: 2017-09-24T00:06:28+02:00
+---
+
+** Python
+- [[https://github.com/rakanalh/django-pushy][Django Pushy]]: Python / Django app that provides push notifications functionality with celery. The main purpose of this app is to help you send push notifications to your users at scale. If you have lots of registered device keys, django-pushy will split your keys into smaller groups which run in parallel making the process of sending notifications faster.
+- [[https://github.com/rakanalh/pocket-cli][Pocket CLI]]: Pocket-CLI is an application for reading / listing and managing your GetPocket.com articles from the terminal.
+- [[https://github.com/rakanalh/pocket-api][Pocket API]]: This package provides a wrapper class around [[https://getpocket.com/][GetPocket]] V3 APIs.
+
+** Emacs
+- [[https://github.com/rakanalh/emacs-dashboard][Emacs-Dashboard]]: An extensible emacs startup screen showing you what’s most important.
+- [[https://github.com/rakanalh/emacs-bootstrap][Emacs Bootstrap]]: Your on-the-fly Emacs development environment. Emacs-bootstrap uses opinionated code templates which will be used to generate your emacs configurations. It enables you to select the programming languages you work with the most and will generate enough Emacs configs to get you started crunching code.

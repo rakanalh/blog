@@ -3,4 +3,12 @@ title: "About"
 date: 2017-09-24T00:06:28+02:00
 menu: main
 ---
-* Rakan Alhneiti
+
+[[file:/img/avatar.png]]
+
+I am Rakan Al-Hneiti. A software developer from Amman / Jordan currently based in Berlin / Germany.
+
+In this blog post i'll mostly be be writing about Python / Django and Emacs among other programming experiments or side projects
+i might be doing for fun.
+
+I hope you enjoy those blog posts!
