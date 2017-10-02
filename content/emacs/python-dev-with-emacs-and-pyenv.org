@@ -148,4 +148,20 @@ Which will initialize pyenv to use the global version at initialization.
 Once you have this code in your Emacs configuration, You'll have a working setup for this amazing Pyenv package
 as well as Elpy.
 
+Update(02.10.2017):
+As @componaut mentioned in the comment, the function =locate-dominating-file= can be used instead of =f-traverse-upwards=.
+This makes =pyenv-activate-current-project= look as follows:
+
+#+BEGIN_SRC lisp
+(defun pyenv-activate-current-project ()
+  "Automatically activates pyenv version if .python-version file exists."
+  (interactive)
+  (let ((python-version-directory (locate-dominating-file (buffer-file-name) ".python-version")))
+    (if python-version-directory
+        (let* ((pyenv-version-path (f-expand ".python-version" python-version-directory))
+               (pyenv-current-version (s-trim (f-read-text pyenv-version-path 'utf-8))))
+          (pyenv-mode-set pyenv-current-version)
+          (message (concat "Setting virtualenv to " pyenv-current-version))))))
+#+END_SRC
+
 Enjoy Emacs!
