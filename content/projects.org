@@ -8,6 +8,9 @@ date: 2017-09-24T00:06:28+02:00
 - [[https://github.com/rakanalh/pocket-cli][Pocket CLI]]: Pocket-CLI is an application for reading / listing and managing your GetPocket.com articles from the terminal.
 - [[https://github.com/rakanalh/pocket-api][Pocket API]]: This package provides a wrapper class around [[https://getpocket.com/][GetPocket]] V3 APIs.
 
+** Go
+- [[https://github.com/rakanalh/scheduler][Go Task Scheduler]]: Go Task scheduler is a small library that you can use within your application that enables you to execute callbacks (goroutines) after a pre-defined amount of time. GTS also provides task storage which is used to invoke callbacks for tasks which couldn’t be executed during down-time as well as maintaining a history of the callbacks that got executed.
+
 ** Emacs
 - [[https://github.com/rakanalh/emacs-dashboard][Emacs-Dashboard]]: An extensible emacs startup screen showing you what’s most important.
 - [[https://github.com/rakanalh/emacs-bootstrap][Emacs Bootstrap]]: Your on-the-fly Emacs development environment. Emacs-bootstrap uses opinionated code templates which will be used to generate your emacs configurations. It enables you to select the programming languages you work with the most and will generate enough Emacs configs to get you started crunching code.
